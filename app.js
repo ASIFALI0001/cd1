@@ -119,6 +119,7 @@ const title = document.querySelector("#programTitle");
 const text = document.querySelector("#programText");
 const tabs = document.querySelectorAll(".tab");
 const toast = document.querySelector("#toast");
+let preloadStarted = false;
 
 async function loadText(path) {
   if (cache.has(path)) return cache.get(path);
@@ -129,6 +130,25 @@ async function loadText(path) {
   const value = await response.text();
   cache.set(path, value.trimEnd());
   return value.trimEnd();
+}
+
+function allAssetPaths() {
+  const paths = new Set();
+
+  Object.values(programs).forEach((program) => {
+    program.items.forEach((item) => {
+      item.files.forEach((file) => paths.add(file.path));
+      paths.add(item.input);
+    });
+  });
+
+  return [...paths];
+}
+
+function preloadAssets() {
+  if (preloadStarted) return;
+  preloadStarted = true;
+  Promise.allSettled(allAssetPaths().map((path) => loadText(path)));
 }
 
 function escapeHtml(value) {
@@ -258,4 +278,4 @@ container.addEventListener("click", (event) => {
   }
 });
 
-renderProgram("prog1");
+renderProgram("prog1").then(preloadAssets);
