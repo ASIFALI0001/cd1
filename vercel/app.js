@@ -155,6 +155,16 @@ function commentBlock(title, content) {
   return [
     "/*",
     ` ${title}`,
+    "*/",
+    "",
+    content
+  ].join("\n");
+}
+
+function instructionBlock(title, content) {
+  return [
+    "/*",
+    ` ${title}`,
     "",
     ...content.split("\n").map((line) => ` ${line}`),
     "*/"
@@ -180,8 +190,8 @@ async function wholeProgramText(item) {
   }
 
   const sampleInput = await loadText(item.input);
-  parts.push(commentBlock("Sample input.txt", sampleInput));
-  parts.push(commentBlock("Ubuntu commands to run", item.run));
+  parts.push(instructionBlock("Sample input.txt", sampleInput));
+  parts.push(instructionBlock("Ubuntu commands to run", item.run));
 
   return parts.join("\n\n");
 }
