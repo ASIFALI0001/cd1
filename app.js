@@ -161,8 +161,18 @@ function commentBlock(title, content) {
   ].join("\n");
 }
 
+function sectionHeader(title) {
+  return [
+    "/*",
+    ` ============================ ${title}`,
+    "*/"
+  ].join("\n");
+}
+
 async function wholeProgramText(item) {
   const parts = [];
+
+  parts.push(sectionHeader(item.title));
 
   for (const file of item.files) {
     const content = await loadText(file.path);
@@ -176,6 +186,16 @@ async function wholeProgramText(item) {
   return parts.join("\n\n");
 }
 
+async function wholeTabText(program) {
+  const parts = [];
+
+  for (const item of program.items) {
+    parts.push(await wholeProgramText(item));
+  }
+
+  return parts.join("\n\n");
+}
+
 async function renderProgram(key) {
   const program = programs[key];
   title.textContent = program.title;
@@ -183,22 +203,19 @@ async function renderProgram(key) {
   container.innerHTML = "";
 
   try {
-    const cards = await Promise.all(program.items.map(async (item) => {
-      const content = await wholeProgramText(item);
-      return `
-        <article class="program-card">
-          <div class="card-head">
-            <div>
-              <h3>${item.title}</h3>
-              <p>${item.description}</p>
-            </div>
-            <span class="tag">${item.id}</span>
+    const content = await wholeTabText(program);
+    container.innerHTML = `
+      <article class="program-card">
+        <div class="card-head">
+          <div>
+            <h3>${program.title}</h3>
+            <p>${program.text}</p>
           </div>
-          ${block("Complete program with input and run commands", content, "c")}
-        </article>
-      `;
-    }));
-    container.innerHTML = cards.join("");
+          <span class="tag">${program.items.map((item) => item.id).join(" + ")}</span>
+        </div>
+        ${block(`Complete ${program.title} with input and run commands`, content, "c")}
+      </article>
+    `;
   } catch (error) {
     container.innerHTML = `<div class="empty">${escapeHtml(error.message)}</div>`;
   }
