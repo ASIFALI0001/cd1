@@ -138,17 +138,42 @@ function escapeHtml(value) {
     .replaceAll(">", "&gt;");
 }
 
-function block(label, content, type = "text") {
+function block(label, content, type = "text", buttonText = "Copy whole program") {
   const id = crypto.randomUUID();
   return `
     <div class="block">
       <div class="block-title">
         <h4>${label}</h4>
-        <button class="copy-btn" data-copy-id="${id}">Copy</button>
+        <button class="copy-btn" data-copy-id="${id}" data-copy-label="${buttonText}">${buttonText}</button>
       </div>
       <pre><code id="${id}" class="language-${type}">${escapeHtml(content)}</code></pre>
     </div>
   `;
+}
+
+function commentBlock(title, content) {
+  return [
+    "/*",
+    ` ${title}`,
+    "",
+    ...content.split("\n").map((line) => ` ${line}`),
+    "*/"
+  ].join("\n");
+}
+
+async function wholeProgramText(item) {
+  const parts = [];
+
+  for (const file of item.files) {
+    const content = await loadText(file.path);
+    parts.push(commentBlock(`${file.label}`, content));
+  }
+
+  const sampleInput = await loadText(item.input);
+  parts.push(commentBlock("Sample input.txt", sampleInput));
+  parts.push(commentBlock("Ubuntu commands to run", item.run));
+
+  return parts.join("\n\n");
 }
 
 async function renderProgram(key) {
@@ -159,11 +184,7 @@ async function renderProgram(key) {
 
   try {
     const cards = await Promise.all(program.items.map(async (item) => {
-      const fileBlocks = await Promise.all(item.files.map(async (file) => {
-        const content = await loadText(file.path);
-        return block(file.label, content, file.language);
-      }));
-      const sampleInput = await loadText(item.input);
+      const content = await wholeProgramText(item);
       return `
         <article class="program-card">
           <div class="card-head">
@@ -173,9 +194,7 @@ async function renderProgram(key) {
             </div>
             <span class="tag">${item.id}</span>
           </div>
-          ${fileBlocks.join("")}
-          ${block("Sample input.txt", sampleInput, "text")}
-          ${block("Ubuntu commands to run", item.run, "bash")}
+          ${block("Complete program with input and run commands", content, "c")}
         </article>
       `;
     }));
@@ -192,7 +211,7 @@ async function copyText(id, button) {
   button.textContent = "Copied";
   toast.classList.add("show");
   window.setTimeout(() => {
-    button.textContent = "Copy";
+    button.textContent = button.dataset.copyLabel || "Copy whole program";
     toast.classList.remove("show");
   }, 1000);
 }
